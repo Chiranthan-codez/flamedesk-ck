@@ -128,9 +128,7 @@ const Login: React.FC = () => {
               </div>
             </div>
 
-            <div className="hint-row">
-              <span>Demo: <code>admin / admin123</code> or <code>arjun@email.com / customer123</code></span>
-            </div>
+            
 
             <button type="submit" className={`login-btn ${loading ? 'loading' : ''}`}>
               <span>{loading ? 'Launching…' : 'Access Dashboard'}</span>
