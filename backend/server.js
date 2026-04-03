@@ -353,6 +353,34 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
+app.post('/api/register', async (req, res) => {
+  const { name, phone, email, password, address } = req.body;
+  try {
+    if (!name || !phone || !email || !password) {
+      return res.json({ success: false, error: 'All fields are required' });
+    }
+
+    // Check if email or phone already exists
+    const [existing] = await pool.query('SELECT * FROM customers WHERE email = ? OR phone = ?', [email, phone]);
+    if (existing.length) {
+      return res.json({ success: false, error: 'Email or phone already registered' });
+    }
+
+    // Hash password
+    const password_hash = await bcrypt.hash(password, 10);
+
+    // Insert new customer
+    const [result] = await pool.query(
+      'INSERT INTO customers (name, phone, email, password_hash, address) VALUES (?, ?, ?, ?, ?)',
+      [name, phone, email, password_hash, address || '']
+    );
+
+    res.json({ success: true, message: 'Registration successful', customer_id: result.insertId });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
 // ── CUSTOMER PORTAL ───────────────────────────────────────────
 app.get('/api/customer/menu', authMiddleware, customerOnly, async (req, res) => {
   try {

@@ -312,6 +312,25 @@ label {
   font-size: 0.84rem;
 }
 
+.toggle-link {
+  margin-top: 16px;
+  text-align: center;
+}
+
+.toggle-link button {
+  background: none;
+  border: none;
+  color: var(--flame);
+  font-size: 0.84rem;
+  cursor: pointer;
+  text-decoration: underline;
+  transition: color 0.2s ease;
+}
+
+.toggle-link button:hover {
+  color: var(--amber);
+}
+
 .login-footer {
   margin-top: 20px;
   text-align: center;
