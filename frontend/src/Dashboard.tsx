@@ -585,20 +585,7 @@ const Dashboard: React.FC = () => {
     <div className="app">
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-brand">
-          <div className="flame-icon">
-            <svg viewBox="0 0 40 50" fill="none">
-              <path d="M20 2C20 2 32 14 32 26C32 33.18 26.63 39 20 39C13.37 39 8 33.18 8 26C8 14 20 2 20 2Z" fill="url(#sf1)" />
-              <path d="M20 18C20 18 26 24 26 30C26 33.31 23.31 36 20 36C16.69 36 14 33.31 14 30C14 24 20 18 20 18Z" fill="url(#sf2)" />
-              <defs>
-                <linearGradient id="sf1" x1="20" y1="2" x2="20" y2="39" gradientUnits="userSpaceOnUse">
-                  <stop stopColor="#FF6B35" /><stop offset="1" stopColor="#F7C59F" />
-                </linearGradient>
-                <linearGradient id="sf2" x1="20" y1="18" x2="20" y2="36" gradientUnits="userSpaceOnUse">
-                  <stop stopColor="#FFE66D" /><stop offset="1" stopColor="#FF6B35" />
-                </linearGradient>
-              </defs>
-            </svg>
-          </div>
+          
           <div>
             <div className="brand-name">FlameDesk</div>
             <div className="brand-sub">Kitchen OS v2</div>
