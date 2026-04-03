@@ -781,6 +781,28 @@ updateTime(); setInterval(updateTime,1000);
 // ── NAVIGATION ───────────────────────────────────────────────
 const pageTitles={dashboard:'Dashboard',orders:'Orders',menu:'Menu',brands:'Brands',customers:'Customers',delivery:'Delivery',inventory:'Inventory',ratings:'Ratings & Reviews',reports:'Reports & Analytics',ai:'AI Insights'};
 let currentPage='dashboard';
+let autoRefreshTimer=null;
+
+function shouldAutoRefresh(page){
+  return ['dashboard','orders','delivery','customers'].includes(page);
+}
+
+function startAutoRefresh(){
+  stopAutoRefresh();
+  if(!shouldAutoRefresh(currentPage)) return;
+  autoRefreshTimer=setInterval(()=>{
+    if(document.hidden) return;
+    if(document.querySelector('.modal-overlay.open')) return;
+    loadPage(currentPage);
+  },5000);
+}
+
+function stopAutoRefresh(){
+  if(autoRefreshTimer){
+    clearInterval(autoRefreshTimer);
+    autoRefreshTimer=null;
+  }
+}
 
 function showPage(page){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -790,6 +812,7 @@ function showPage(page){
   document.getElementById('pageTitle').textContent=pageTitles[page];
   currentPage=page;
   loadPage(page);
+  startAutoRefresh();
   if(window.innerWidth<900)document.getElementById('sidebar').classList.remove('open');
 }
 function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open')}
@@ -798,6 +821,7 @@ function loadPage(page){
   const m={dashboard:loadDashboard,orders:loadOrders,menu:loadMenu,brands:loadBrands,customers:loadCustomers,delivery:loadDelivery,inventory:loadInventory,ratings:loadRatings,reports:loadReports,ai:loadAI};
   if(m[page])m[page]();
 }
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&!document.querySelector('.modal-overlay.open')) loadPage(currentPage); });
 
 // ── TOAST ────────────────────────────────────────────────────
 function toast(msg,type='success'){
@@ -828,7 +852,7 @@ const CATEGORY_EMOJI={'Main Course':'🍛','Burgers':'🍔','Pizza':'🍕','Nood
 // ── DATA MODE ────────────────────────────────────────────────
 // Set to true only when you explicitly want local mock behavior.
 const IS_DEMO=false;
-const API_BASE='http://localhost:3001/api';
+const API_BASE='http://localhost:3002/api';
 
 const MOCK={
   'dashboard/stats':{total_orders:42,pending_orders:5,delivered_today:12,revenue_today:'3840.00',low_stock:3,active_brands:4,total_customers:24,available_riders:2},
@@ -1308,9 +1332,13 @@ async function loadDelivery(){
     </div>`).join('');
   // Populate assign modal
   const ordSel=document.getElementById('assignOrderId');
-  ordSel.innerHTML='<option value="">Select order…</option>'+allOrders.filter(o=>o.status==='preparing').map(o=>`<option value="${o.order_id}">#${o.order_id} — ${o.customer_name}</option>`).join('');
+  const selectedOrderId=ordSel.value;
+  ordSel.innerHTML='<option value="">Select order…</option>'+allOrders.filter(o=>['confirmed','preparing'].includes(o.status)).map(o=>`<option value="${o.order_id}">#${o.order_id} — ${o.customer_name}</option>`).join('');
+  if(selectedOrderId && [...ordSel.options].some(opt=>opt.value===selectedOrderId)) ordSel.value=selectedOrderId;
   const parSel=document.getElementById('assignPartnerId');
+  const selectedPartnerId=parSel.value;
   parSel.innerHTML='<option value="">Select partner…</option>'+allDelivery.filter(p=>p.status==='available').map(p=>`<option value="${p.partner_id}">${p.name} (${p.vehicle_no})</option>`).join('');
+  if(selectedPartnerId && [...parSel.options].some(opt=>opt.value===selectedPartnerId)) parSel.value=selectedPartnerId;
 }
 function prepareAssign(pid,pname){document.getElementById('assignPartnerId').value=pid;openModal('assignModal')}
 async function assignDelivery(){

@@ -2,7 +2,7 @@ const mysql = require('mysql2/promise');
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST || process.env.MYSQLHOST || 'localhost',
-  port: Number(process.env.DB_PORT || process.env.MYSQLPORT || 3306),
+  port: Number(process.env.DB_PORT || process.env.MYSQLPORT || 3307),
   user: process.env.DB_USER || process.env.MYSQLUSER || 'root',
   password: process.env.DB_PASS || process.env.MYSQLPASSWORD || '',
   database: process.env.DB_NAME || process.env.MYSQLDATABASE || 'cloud_kitchen',

@@ -40,7 +40,7 @@ npm install
 DB_HOST=localhost DB_USER=root DB_PASS= DB_NAME=cloud_kitchen node server.js
 ```
 
-The API runs on **http://localhost:3001**
+The API runs on **http://localhost:3002**
 
 ### Database
 Use the original SQL files (unchanged):
@@ -61,7 +61,7 @@ Open `frontend/index.html` in your browser.
 
 To connect to the real backend:
 1. Set `IS_DEMO = false` in `frontend/dashboard.html`
-2. Make sure the backend is running on port 3001
+2. Make sure the backend is running on port 3002
 
 ### AI Features
 The AI Insights page calls the Anthropic API directly from the browser.

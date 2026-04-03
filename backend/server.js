@@ -9,17 +9,25 @@ const jwt      = require('jsonwebtoken');
 const { pool, testDatabaseConnection } = require('./db');
 
 const app  = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3002;
 const JWT_SECRET = process.env.JWT_SECRET || 'flamedesk-secret-key';
 const ALLOWED_ORIGINS = (process.env.CORS_ORIGINS || 'http://localhost:3000,http://localhost:5173,http://127.0.0.1:5173,http://localhost:5500')
   .split(',')
   .map(origin => origin.trim())
   .filter(Boolean);
 
+function isAllowedOrigin(origin) {
+  if (!origin) return true;
+  if (ALLOWED_ORIGINS.includes(origin)) return true;
+
+  // Allow local dev servers on any loopback port.
+  return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+}
+
 // ── MIDDLEWARE ────────────────────────────────────────────────
 app.use(cors({
   origin(origin, callback) {
-    if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+    if (isAllowedOrigin(origin)) {
       callback(null, true);
       return;
     }
@@ -188,6 +196,105 @@ async function markOrderPaymentCompleted(orderId, paymentMethod) {
   }
 }
 
+async function syncDeliveryStateForOrder(connection, orderId, nextStatus) {
+  const [[order]] = await connection.query(
+    'SELECT order_id, total_amount FROM orders WHERE order_id = ?',
+    [orderId]
+  );
+  if (!order) {
+    throw new Error('Order not found');
+  }
+
+  const [[tracking]] = await connection.query(
+    'SELECT tracking_id, partner_id, status FROM delivery_tracking WHERE order_id = ?',
+    [orderId]
+  );
+
+  if (nextStatus === 'out_for_delivery') {
+    if (tracking?.tracking_id) {
+      await connection.query(
+        `UPDATE delivery_tracking
+         SET status = 'picked_up', delivered_at = NULL
+         WHERE order_id = ?`,
+        [orderId]
+      );
+    }
+
+    if (tracking?.partner_id) {
+      await connection.query(
+        `UPDATE delivery_partners
+         SET status = 'on_delivery'
+         WHERE partner_id = ?`,
+        [tracking.partner_id]
+      );
+    }
+
+    return;
+  }
+
+  if (nextStatus !== 'delivered') {
+    return;
+  }
+
+  if (tracking?.tracking_id) {
+    await connection.query(
+      `UPDATE delivery_tracking
+       SET status = 'delivered', delivered_at = NOW()
+       WHERE order_id = ?`,
+      [orderId]
+    );
+  } else {
+    await connection.query(
+      `INSERT INTO delivery_tracking (order_id, status, delivered_at)
+       VALUES (?, 'delivered', NOW())`,
+      [orderId]
+    );
+  }
+
+  const [paymentRows] = await connection.query(
+    'SELECT payment_id, status FROM payments WHERE order_id = ?',
+    [orderId]
+  );
+
+  if (paymentRows.length) {
+    await connection.query(
+      `UPDATE payments
+       SET status = 'completed',
+           payment_time = COALESCE(payment_time, NOW())
+       WHERE order_id = ?
+         AND status != 'completed'`,
+      [orderId]
+    );
+  } else {
+    await connection.query(
+      `INSERT INTO payments (order_id, payment_method, amount, status, payment_time)
+       VALUES (?, 'cash', ?, 'completed', NOW())`,
+      [orderId, order.total_amount]
+    );
+  }
+
+  const partnerId = tracking?.partner_id || null;
+  if (!partnerId) {
+    return;
+  }
+
+  const [[activeAssignments]] = await connection.query(
+    `SELECT COUNT(*) AS active_count
+     FROM delivery_tracking
+     WHERE partner_id = ?
+       AND order_id != ?
+       AND status IN ('assigned', 'picked_up')`,
+    [partnerId, orderId]
+  );
+
+  await connection.query(
+    `UPDATE delivery_partners
+     SET status = ?
+     WHERE partner_id = ?`,
+    [activeAssignments.active_count > 0 ? 'on_delivery' : 'available', partnerId]
+  );
+}
+
 // ── AUTH ──────────────────────────────────────────────────────
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
@@ -271,7 +378,11 @@ app.get('/api/customer/orders', authMiddleware, customerOnly, async (req, res) =
     const [rows] = await pool.query(`
       SELECT o.order_id, o.customer_id, o.total_amount, o.status, o.order_time,
              o.estimated_delivery_time, p.payment_method, p.status AS payment_status,
-             dt.status AS delivery_status, dp.name AS delivery_partner
+             CASE
+               WHEN o.status = 'delivered' THEN 'delivered'
+               ELSE dt.status
+             END AS delivery_status,
+             dp.name AS delivery_partner
       FROM orders o
       LEFT JOIN payments p ON o.order_id = p.order_id
       LEFT JOIN delivery_tracking dt ON o.order_id = dt.order_id
@@ -435,7 +546,17 @@ app.get('/api/dashboard/stats', authMiddleware, adminOnly, async (req, res) => {
         (SELECT COUNT(*) FROM ingredients WHERE current_stock_qty <= reorder_level) AS low_stock,
         (SELECT COUNT(*) FROM brands WHERE status='active') AS active_brands,
         (SELECT COUNT(*) FROM customers) AS total_customers,
-        (SELECT COUNT(*) FROM delivery_partners WHERE status='available') AS available_riders
+        (SELECT COUNT(*)
+         FROM delivery_partners dp
+         WHERE dp.status != 'offline'
+           AND NOT EXISTS (
+             SELECT 1
+             FROM delivery_tracking dt
+             JOIN orders o ON o.order_id = dt.order_id
+             WHERE dt.partner_id = dp.partner_id
+               AND dt.status IN ('assigned','picked_up')
+               AND o.status != 'delivered'
+           )) AS available_riders
       FROM orders`);
     res.json({ success: true, data: stats });
   } catch (e) { res.json({ success: false, error: e.message }); }
@@ -457,7 +578,11 @@ app.get('/api/orders', authMiddleware, adminOnly, async (req, res) => {
     const [rows] = await pool.query(`
       SELECT o.*, c.name AS customer_name, c.phone,
              p.payment_method, p.status AS payment_status,
-             dp.name AS delivery_partner, dt.status AS delivery_status
+             dp.name AS delivery_partner,
+             CASE
+               WHEN o.status = 'delivered' THEN 'delivered'
+               ELSE dt.status
+             END AS delivery_status
       FROM orders o
       JOIN customers c ON o.customer_id = c.customer_id
       LEFT JOIN payments p ON o.order_id = p.order_id
@@ -480,10 +605,40 @@ app.post('/api/orders', authMiddleware, adminOnly, async (req, res) => {
 
 app.patch('/api/orders/:id/status', authMiddleware, adminOnly, async (req, res) => {
   const { status } = req.body;
+  const orderId = Number(req.params.id);
+
+  if (!orderId) {
+    return res.status(400).json({ success: false, error: 'Invalid order id' });
+  }
+
+  const connection = await pool.getConnection();
   try {
-    await pool.query('UPDATE orders SET status=? WHERE order_id=?', [status, req.params.id]);
+    await connection.beginTransaction();
+
+    const [[order]] = await connection.query(
+      'SELECT order_id, status FROM orders WHERE order_id = ?',
+      [orderId]
+    );
+    if (!order) {
+      await connection.rollback();
+      return res.status(404).json({ success: false, error: 'Order not found' });
+    }
+
+    await connection.query(
+      'UPDATE orders SET status = ? WHERE order_id = ?',
+      [status, orderId]
+    );
+
+    await syncDeliveryStateForOrder(connection, orderId, status);
+
+    await connection.commit();
     res.json({ success: true, message: 'Status updated' });
-  } catch (e) { res.json({ success: false, error: e.message }); }
+  } catch (e) {
+    await connection.rollback();
+    res.status(500).json({ success: false, error: e.message });
+  } finally {
+    connection.release();
+  }
 });
 
 app.patch('/api/orders/:id/payment', authMiddleware, adminOnly, async (req, res) => {
@@ -575,10 +730,37 @@ app.post('/api/customers', authMiddleware, adminOnly, async (req, res) => {
 app.get('/api/delivery', authMiddleware, adminOnly, async (req, res) => {
   try {
     const [rows] = await pool.query(`
-      SELECT dp.*, COUNT(dt.tracking_id) AS total_deliveries
+      SELECT dp.partner_id,
+             dp.name,
+             dp.phone,
+             dp.vehicle_no,
+             dp.created_at,
+             CASE
+               WHEN dp.status = 'offline' THEN 'offline'
+               WHEN SUM(CASE
+                 WHEN dt.status IN ('assigned','picked_up') AND COALESCE(o.status, '') != 'delivered' THEN 1
+                 ELSE 0
+               END) > 0 THEN 'on_delivery'
+               ELSE 'available'
+             END AS status,
+             SUM(CASE
+               WHEN dt.status = 'delivered' OR o.status = 'delivered' THEN 1
+               ELSE 0
+             END) AS total_deliveries
       FROM delivery_partners dp
       LEFT JOIN delivery_tracking dt ON dp.partner_id = dt.partner_id
-      GROUP BY dp.partner_id ORDER BY dp.status`);
+      LEFT JOIN orders o ON o.order_id = dt.order_id
+      GROUP BY dp.partner_id, dp.name, dp.phone, dp.vehicle_no, dp.created_at, dp.status
+      ORDER BY
+        CASE
+          WHEN dp.status = 'offline' THEN 3
+          WHEN SUM(CASE
+            WHEN dt.status IN ('assigned','picked_up') AND COALESCE(o.status, '') != 'delivered' THEN 1
+            ELSE 0
+          END) > 0 THEN 2
+          ELSE 1
+        END,
+        dp.name`);
     res.json({ success: true, data: rows });
   } catch (e) { res.json({ success: false, error: e.message }); }
 });
@@ -852,7 +1034,19 @@ async function startServer() {
   try {
     await testDatabaseConnection();
     console.log('✅ Database connected');
-    app.listen(PORT, () => console.log(`🔥 FlameDesk API running on port ${PORT}`));
+    const server = app.listen(PORT, () => console.log(`🔥 FlameDesk API running on port ${PORT}`));
+
+    server.on('error', (error) => {
+      if (error.code === 'EADDRINUSE') {
+        console.error(`❌ Port ${PORT} is already in use.`);
+        console.error(`   Stop the other server or run this one with a different port.`);
+        console.error(`   PowerShell example: $env:PORT=3002; npm run dev`);
+        process.exit(1);
+      }
+
+      console.error('❌ Failed to start server:', error.message);
+      process.exit(1);
+    });
   } catch (error) {
     console.error('❌ Failed to connect to MySQL:', error.message);
     process.exit(1);

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import './Dashboard.css';
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3001/api';
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3002/api';
 
 type DashboardStats = {
   total_orders: number;
@@ -284,6 +284,32 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     void loadPageData(currentPage);
+  }, [currentPage, loadPageData]);
+
+  useEffect(() => {
+    const pagesWithLiveUpdates: PageKey[] = ['dashboard', 'orders', 'delivery', 'customers'];
+    if (!pagesWithLiveUpdates.includes(currentPage)) {
+      return undefined;
+    }
+
+    const interval = window.setInterval(() => {
+      if (!document.hidden && !document.querySelector('.modal-overlay.open')) {
+        void loadPageData(currentPage);
+      }
+    }, 5000);
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden && !document.querySelector('.modal-overlay.open')) {
+        void loadPageData(currentPage);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [currentPage, loadPageData]);
 
   const toggleSidebar = () => {
