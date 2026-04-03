@@ -97,7 +97,7 @@ const Login: React.FC = () => {
         <div className="login-card" id="loginCard">
           <div className="card-header">
             <h2>{isRegister ? 'Create Account' : 'Welcome back'}</h2>
-            <p>{isRegister ? 'Join TasteTrail as a customer' : 'Sign in to your kitchen command center'}</p>
+            <p>{isRegister ? 'Join TasteTrail as a customer' : 'Sign in to your account'}</p>
           </div>
 
           <form id="loginForm" onSubmit={handleSubmit}>
