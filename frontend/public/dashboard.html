@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FlameDesk — Dashboard</title>
+<title>TasteTrail — Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
@@ -313,7 +313,7 @@ select.form-control option{background:var(--panel)}
     <div class="flame-icon">
       <svg viewBox="0 0 40 50" fill="none"><path d="M20 2C20 2 32 14 32 26C32 33.18 26.63 39 20 39C13.37 39 8 33.18 8 26C8 14 20 2 20 2Z" fill="url(#sf1)"/><path d="M20 18C20 18 26 24 26 30C26 33.31 23.31 36 20 36C16.69 36 14 33.31 14 30C14 24 20 18 20 18Z" fill="url(#sf2)"/><defs><linearGradient id="sf1" x1="20" y1="2" x2="20" y2="39" gradientUnits="userSpaceOnUse"><stop stop-color="#FF6B35"/><stop offset="1" stop-color="#F7C59F"/></linearGradient><linearGradient id="sf2" x1="20" y1="18" x2="20" y2="36" gradientUnits="userSpaceOnUse"><stop stop-color="#FFE66D"/><stop offset="1" stop-color="#FF6B35"/></linearGradient></defs></svg>
     </div>
-    <div><div class="brand-name">FlameDesk</div><div class="brand-sub">Kitchen OS v2</div></div>
+    <div><div class="brand-name">TasteTrail</div><div class="brand-sub">Kitchen OS v2</div></div>
   </div>
   <nav class="sidebar-nav">
     <div class="nav-section">MAIN</div>
@@ -628,7 +628,7 @@ select.form-control option{background:var(--panel)}
     <div class="ai-panel">
       <div class="ai-panel-header">
         <div class="ai-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a2 2 0 012 2v2a2 2 0 01-4 0V4a2 2 0 012-2z"/><path d="M12 16a2 2 0 012 2v2a2 2 0 01-4 0v-2a2 2 0 012-2z"/><path d="M2 12a2 2 0 012-2h2a2 2 0 010 4H4a2 2 0 01-2-2z"/><path d="M16 12a2 2 0 012-2h2a2 2 0 010 4h-2a2 2 0 01-2-2z"/></svg></div>
-        <div><div class="ai-title">FlameDesk AI Assistant</div><div class="ai-sub">Ask about your kitchen data, get smart recommendations</div></div>
+        <div><div class="ai-title">TasteTrail AI Assistant</div><div class="ai-sub">Ask about your kitchen data, get smart recommendations</div></div>
       </div>
       <div id="aiInsights" class="ai-insights">
         <div class="ai-loading"><div class="ai-loading-dot"></div><div class="ai-loading-dot"></div><div class="ai-loading-dot"></div><span style="margin-left:4px">Analyzing your kitchen data…</span></div>
@@ -1475,7 +1475,7 @@ async function loadReports(){
 function exportCSV(){
   const rows=[['Item','Brand','Qty Sold','Revenue','Rating'],...(MOCK['reports/top-items']||[]).map(r=>[r.item_name,r.brand_name,r.qty_sold,r.revenue,r.rating||''])];
   const csv=rows.map(r=>r.join(',')).join('\n');
-  const a=document.createElement('a');a.href='data:text/csv,'+encodeURIComponent(csv);a.download='flamedesk-report.csv';a.click();
+  const a=document.createElement('a');a.href='data:text/csv,'+encodeURIComponent(csv);a.download='TasteTrail-report.csv';a.click();
   toast('Report exported!');
 }
 
@@ -1529,7 +1529,7 @@ async function askAI(){
       body:JSON.stringify({
         model:'claude-sonnet-4-20250514',
         max_tokens:500,
-        system:'You are FlameDesk AI, a smart kitchen management assistant. Answer concisely based on the kitchen data provided. Be specific with numbers. Max 3 sentences.',
+        system:'You are TasteTrail AI, a smart kitchen management assistant. Answer concisely based on the kitchen data provided. Be specific with numbers. Max 3 sentences.',
         messages:[{role:'user',content:`Kitchen data:\n${context}\n\nQuestion: ${q}`}]
       })
     });

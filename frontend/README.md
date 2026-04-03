@@ -1,6 +1,6 @@
-# FlameDesk Frontend - React Application
+# TasteTrail Frontend - React Application
 
-This is the React frontend for FlameDesk, a Cloud Kitchen OS. The application has been converted from plain HTML/CSS/JavaScript to a modern React application using Vite.
+This is the React frontend for TasteTrail, a Cloud Kitchen OS. The application has been converted from plain HTML/CSS/JavaScript to a modern React application using Vite.
 
 ## Features
 
@@ -66,7 +66,7 @@ frontend/
 
 The app uses sessionStorage for simple authentication:
 - Username: `admin`
-- Password: `admin123`
+- Password: ``
 
 ## Technologies Used
 

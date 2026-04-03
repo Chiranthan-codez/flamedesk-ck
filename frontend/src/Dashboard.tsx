@@ -587,7 +587,7 @@ const Dashboard: React.FC = () => {
         <div className="sidebar-brand">
           
           <div>
-            <div className="brand-name">FlameDesk</div>
+            <div className="brand-name">TasteTrail</div>
             <div className="brand-sub">Kitchen OS v2</div>
           </div>
         </div>

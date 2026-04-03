@@ -283,7 +283,7 @@ function CustomerPortal() {
       <div className="customer-page">
         <header className="customer-header">
           <div>
-            <div className="customer-kicker">FlameDesk Customer</div>
+            <div className="customer-kicker">TasteTrail Customer</div>
             <br/>
             <h1>Welcome, {displayName}</h1>
             <br/>

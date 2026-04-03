@@ -5,7 +5,7 @@ const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3002/api';
 
 const Login: React.FC = () => {
   const [isRegister, setIsRegister] = useState(false);
-  const [username, setUsername] = useState('admin');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -102,7 +102,7 @@ const Login: React.FC = () => {
             </svg>
           </div>
           <div className="brand-text">
-            <h1>FlameDesk</h1>
+            <h1>TasteTrail</h1>
             <span>Cloud Kitchen OS</span>
           </div>
         </div>
@@ -110,7 +110,7 @@ const Login: React.FC = () => {
         <div className="login-card" id="loginCard">
           <div className="card-header">
             <h2>{isRegister ? 'Create Account' : 'Welcome back'}</h2>
-            <p>{isRegister ? 'Join FlameDesk as a customer' : 'Sign in to your kitchen command center'}</p>
+            <p>{isRegister ? 'Join TasteTrail as a customer' : 'Sign in to your kitchen command center'}</p>
           </div>
 
           <form id="loginForm" onSubmit={handleSubmit}>
@@ -124,7 +124,7 @@ const Login: React.FC = () => {
                     </svg>
                     <input
                       type="text"
-                      placeholder="John Doe"
+                      placeholder="ex - Austin"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       required
@@ -242,7 +242,7 @@ const Login: React.FC = () => {
           </div>
         </div>
 
-        <div className="login-footer">FlameDesk v1.0 · Cloud Kitchen Management System</div>
+        <div className="login-footer">TasteTrail v1.0 · Cloud Kitchen Management System</div>
       </div>
     </div>
   );
