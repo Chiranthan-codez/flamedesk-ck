@@ -284,7 +284,9 @@ function CustomerPortal() {
         <header className="customer-header">
           <div>
             <div className="customer-kicker">FlameDesk Customer</div>
+            <br/>
             <h1>Welcome, {displayName}</h1>
+            <br/>
             <p>Order from the menu, track active deliveries, complete payment, and rate delivered meals.</p>
           </div>
           <div className="header-actions">
