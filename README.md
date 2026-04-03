@@ -1,4 +1,4 @@
-# 🔥 FlameDesk v2.0 — Enhanced Cloud Kitchen OS
+# 🔥 TasteTrail v2.0 — Enhanced Cloud Kitchen OS
 
 ## What's New in v2.0
 
