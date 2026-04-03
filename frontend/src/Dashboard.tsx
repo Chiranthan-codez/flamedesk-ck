@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './Dashboard.css';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3002/api';
@@ -212,6 +212,7 @@ const Dashboard: React.FC = () => {
   const [ratings, setRatings] = useState<Rating[]>([]);
   const [topItems, setTopItems] = useState<TopItem[]>([]);
   const [brandRevenue, setBrandRevenue] = useState<BrandRevenue[]>([]);
+  const backgroundCacheRef = useRef<Partial<Record<PageKey, unknown>>>({});
 
   const token = sessionStorage.getItem('ck_token') || '';
 
@@ -239,16 +240,27 @@ const Dashboard: React.FC = () => {
     return result as T;
   }, [token]);
 
-  const loadPageData = useCallback(async (page: PageKey) => {
-    setLoadingPage(true);
-    setError('');
+  const loadPageData = useCallback(async (page: PageKey, options?: { background?: boolean }) => {
+    const isBackground = options?.background === true;
+    if (!isBackground) {
+      setLoadingPage(true);
+      setError('');
+    }
     try {
       if (page === 'dashboard') {
         const result = await api<ApiResponse<DashboardStats>>('/dashboard/stats');
-        setStats(result.data || null);
+        if (isBackground) {
+          backgroundCacheRef.current[page] = result.data || null;
+        } else {
+          setStats(result.data || null);
+        }
       } else if (page === 'orders') {
         const result = await api<ApiResponse<Order[]>>('/orders');
-        setOrders(result.data || []);
+        if (isBackground) {
+          backgroundCacheRef.current[page] = result.data || [];
+        } else {
+          setOrders(result.data || []);
+        }
       } else if (page === 'menu') {
         const result = await api<ApiResponse<MenuItem[]>>('/menu');
         setMenuItems(result.data || []);
@@ -257,10 +269,18 @@ const Dashboard: React.FC = () => {
         setBrands(result.data || []);
       } else if (page === 'customers') {
         const result = await api<ApiResponse<Customer[]>>('/customers');
-        setCustomers(result.data || []);
+        if (isBackground) {
+          backgroundCacheRef.current[page] = result.data || [];
+        } else {
+          setCustomers(result.data || []);
+        }
       } else if (page === 'delivery') {
         const result = await api<ApiResponse<DeliveryPartner[]>>('/delivery');
-        setDeliveryPartners(result.data || []);
+        if (isBackground) {
+          backgroundCacheRef.current[page] = result.data || [];
+        } else {
+          setDeliveryPartners(result.data || []);
+        }
       } else if (page === 'inventory') {
         const result = await api<ApiResponse<InventoryItem[]>>('/inventory');
         setInventory(result.data || []);
@@ -276,9 +296,13 @@ const Dashboard: React.FC = () => {
         setBrandRevenue(brandResult.data || []);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load page');
+      if (!isBackground) {
+        setError(err instanceof Error ? err.message : 'Failed to load page');
+      }
     } finally {
-      setLoadingPage(false);
+      if (!isBackground) {
+        setLoadingPage(false);
+      }
     }
   }, [api]);
 
@@ -294,7 +318,7 @@ const Dashboard: React.FC = () => {
 
     const interval = window.setInterval(() => {
       if (!document.hidden && !document.querySelector('.modal-overlay.open')) {
-        void loadPageData(currentPage);
+        void loadPageData(currentPage, { background: true });
       }
     }, 5000);
 
