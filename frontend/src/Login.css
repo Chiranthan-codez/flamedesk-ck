@@ -118,6 +118,10 @@ body {
   margin: 0 auto;
 }
 
+.login-container::-webkit-scrollbar {
+  display: none;
+}
+
 .brand-mark {
   display: flex;
   align-items: center;
