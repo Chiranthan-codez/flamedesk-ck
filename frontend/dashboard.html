@@ -852,7 +852,9 @@ const CATEGORY_EMOJI={'Main Course':'🍛','Burgers':'🍔','Pizza':'🍕','Nood
 // ── DATA MODE ────────────────────────────────────────────────
 // Set to true only when you explicitly want local mock behavior.
 const IS_DEMO=false;
-const API_BASE='http://localhost:3002/api';
+const API_BASE=window.location.hostname==='localhost'||window.location.hostname==='127.0.0.1'
+  ? 'http://localhost:3002/api'
+  : '%VITE_API_BASE%';
 
 const MOCK={
   'dashboard/stats':{total_orders:42,pending_orders:5,delivered_today:12,revenue_today:'3840.00',low_stock:3,active_brands:4,total_customers:24,available_riders:2},

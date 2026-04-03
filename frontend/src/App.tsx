@@ -8,9 +8,9 @@ function App() {
   // Check if user is authenticated
   const isAuthenticated = sessionStorage.getItem('ck_auth') === '1';
   const role = sessionStorage.getItem('ck_role');
-  const homePath = role === 'customer' ? '/customer' : '/dashboard';
+  const homePath = role === 'customer' ? '/customer' : '/dashboard.html';
   const loginElement = isAuthenticated ? <Navigate to={homePath} replace /> : <Login />;
-  const dashboardElement = isAuthenticated && role === 'admin' ? <Dashboard /> : <Navigate to={isAuthenticated ? homePath : "/"} replace />;
+  const dashboardElement = isAuthenticated && role === 'admin' ? <Navigate to="/dashboard.html" replace /> : <Navigate to={isAuthenticated ? homePath : "/"} replace />;
   const customerElement = isAuthenticated && role === 'customer' ? <CustomerPortal /> : <Navigate to={isAuthenticated ? homePath : "/"} replace />;
 
   return (
@@ -20,7 +20,7 @@ function App() {
           <Route path="/" element={loginElement} />
           <Route path="/index.html" element={<Navigate to="/" replace />} />
           <Route path="/dashboard" element={dashboardElement} />
-          <Route path="/dashboard.html" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard.html" element={dashboardElement} />
           <Route path="/customer" element={customerElement} />
           <Route path="*" element={<Navigate to={isAuthenticated ? homePath : "/"} replace />} />
         </Routes>

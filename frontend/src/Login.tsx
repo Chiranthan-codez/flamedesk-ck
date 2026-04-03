@@ -36,7 +36,7 @@ const Login: React.FC = () => {
       } else {
         sessionStorage.removeItem('ck_customer_id');
       }
-      window.location.href = result.role === 'customer' ? '/customer' : '/dashboard';
+      window.location.href = result.role === 'customer' ? '/customer' : '/dashboard.html';
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Login failed';
       setError(message);
