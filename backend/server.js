@@ -9,6 +9,9 @@ const bcrypt   = require('bcryptjs');
 const jwt      = require('jsonwebtoken');
 const { pool, testDatabaseConnection } = require('./db');
 const { OAuth2Client } = require('google-auth-library');
+const cron     = require('node-cron');
+const http     = require('http');
+const https    = require('https');
 
 const googleClient = new OAuth2Client(
   (process.env.GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID').trim(),
@@ -51,6 +54,10 @@ app.get('/', (req, res) => {
     message: "🔥 FlameDesk API is running",
     version: "2.0.0"
   });
+});
+
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 // ── AUTH MIDDLEWARE ───────────────────────────────────────────
 function authMiddleware(req, res, next) {
@@ -1124,6 +1131,23 @@ async function startServer() {
     await testDatabaseConnection();
     console.log('✅ Database connected');
     const server = app.listen(PORT, () => console.log(`🔥 FlameDesk API running on port ${PORT}`));
+
+    // Cron job to ping the server every 5 minutes to keep it awake on Render
+    cron.schedule('*/5 * * * *', () => {
+      const baseUrl = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
+      const healthUrl = baseUrl.endsWith('/') ? `${baseUrl}api/health` : `${baseUrl}/api/health`;
+      
+      const client = healthUrl.startsWith('https') ? https : http;
+      client.get(healthUrl, (res) => {
+        if (res.statusCode === 200) {
+          console.log(`✅ [CRON] Keep-alive ping to ${healthUrl}: ${res.statusCode}`);
+        } else {
+          console.error(`❌ [CRON] Keep-alive ping to ${healthUrl} failed with status: ${res.statusCode}`);
+        }
+      }).on('error', (err) => {
+        console.error(`❌ [CRON] Keep-alive ping failed:`, err.message);
+      });
+    });
 
     server.on('error', (error) => {
       if (error.code === 'EADDRINUSE') {
