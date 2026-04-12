@@ -4,7 +4,7 @@ const pool = mysql.createPool({
   host: process.env.DB_HOST || process.env.MYSQLHOST || 'localhost',
   port: Number(process.env.DB_PORT || process.env.MYSQLPORT || 3307),
   user: process.env.DB_USER || process.env.MYSQLUSER || 'root',
-  password: process.env.DB_PASS || process.env.MYSQLPASSWORD || '',
+  password: process.env.DB_PASS || process.env.MYSQLPASSWORD || 'xzvb##1234A',
   database: process.env.DB_NAME || process.env.MYSQLDATABASE || 'cloud_kitchen',
   waitForConnections: true,
   connectionLimit: Number(process.env.DB_CONNECTION_LIMIT || 10),

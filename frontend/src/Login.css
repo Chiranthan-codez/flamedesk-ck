@@ -384,3 +384,27 @@ label {
     font-size: 1.72rem;
   }
 }
+
+.google-auth-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 320px;
+  height: 48px;
+  border-radius: 24px;
+  background: white;
+  color: #3c4043;
+  text-decoration: none;
+  font-family: var(--font-b);
+  font-weight: 500;
+  font-size: 1.05rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.google-auth-btn:hover {
+  background-color: #f8f9fa;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+}

@@ -2,11 +2,19 @@
 // FlameDesk — Node.js Backend (replaces PHP)
 // Express + MySQL2
 // ============================================================
+require('dotenv').config();
 const express  = require('express');
 const cors     = require('cors');
 const bcrypt   = require('bcryptjs');
 const jwt      = require('jsonwebtoken');
 const { pool, testDatabaseConnection } = require('./db');
+const { OAuth2Client } = require('google-auth-library');
+
+const googleClient = new OAuth2Client(
+  (process.env.GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID').trim(),
+  (process.env.GOOGLE_CLIENT_SECRET || 'YOUR_GOOGLE_CLIENT_SECRET').trim(),
+  (process.env.GOOGLE_CALLBACK_URL || 'http://localhost:3002/api/auth/google/callback').trim()
+);
 
 const app  = express();
 const PORT = process.env.PORT || 3002;
@@ -350,6 +358,59 @@ app.post('/api/login', async (req, res) => {
     });
   } catch (e) {
     res.json({ success: false, error: e.message });
+  }
+});
+
+app.get('/api/auth/google', (req, res) => {
+  const url = googleClient.generateAuthUrl({
+    access_type: 'offline',
+    scope: ['email', 'profile'],
+  });
+  res.redirect(url);
+});
+
+app.get('/api/auth/google/callback', async (req, res) => {
+  const code = req.query.code;
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  try {
+    const { tokens } = await googleClient.getToken(code);
+    const ticket = await googleClient.verifyIdToken({
+      idToken: tokens.id_token,
+      audience: process.env.GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID'
+    });
+    const payload = ticket.getPayload();
+    if (!payload || !payload.email) throw new Error('Invalid Google token');
+
+    const email = payload.email;
+    const name = payload.name || 'Google User';
+
+    const [customerRows] = await pool.query('SELECT * FROM customers WHERE email = ?', [email]);
+    let customer;
+
+    if (customerRows.length) {
+      customer = customerRows[0];
+    } else {
+      const [result] = await pool.query(
+        'INSERT INTO customers (name, email) VALUES (?, ?)',
+        [name, email]
+      );
+      customer = { customer_id: result.insertId, name, email };
+    }
+
+    const token = jwt.sign(
+      {
+        id: customer.customer_id,
+        customer_id: customer.customer_id,
+        username: customer.email,
+        role: 'customer'
+      },
+      JWT_SECRET,
+      { expiresIn: '8h' }
+    );
+
+    res.redirect(`${frontendUrl}/?ck_token=${token}&ck_username=${encodeURIComponent(customer.email)}&ck_role=customer&ck_customer_id=${customer.customer_id}&ck_display_name=${encodeURIComponent(customer.name)}`);
+  } catch (e) {
+    res.redirect(`${frontendUrl}/?error=${encodeURIComponent(e.message)}`);
   }
 });
 
